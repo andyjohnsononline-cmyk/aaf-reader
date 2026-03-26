@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAF Reader</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>AAF Reader</h1>
+    <p class="subtitle">Drop an AAF file to inspect its metadata</p>
+  </header>
+
+  <main>
+    <div id="dropzone" class="dropzone">
+      <div class="dropzone-content">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <p>Drag &amp; drop an <strong>.aaf</strong> file here</p>
+        <p class="dropzone-hint">or click to browse</p>
+      </div>
+      <input type="file" id="file-input" accept=".aaf" hidden>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Parsing AAF file...</p>
+    </div>
+
+    <div id="error" class="error-banner hidden"></div>
+
+    <div id="results" class="results hidden">
+
+      <section id="section-overview" class="card">
+        <h2>File Overview</h2>
+        <div id="overview-content" class="kv-grid"></div>
+      </section>
+
+      <section id="section-media" class="card">
+        <h2>Media Summary</h2>
+        <div id="media-content"></div>
+      </section>
+
+      <section id="section-compositions" class="card">
+        <h2>Compositions</h2>
+        <div id="compositions-content"></div>
+      </section>
+
+      <section id="section-clips" class="card">
+        <h2>Master Clips</h2>
+        <div id="clips-content"></div>
+      </section>
+
+      <section id="section-clip-metadata" class="card">
+        <h2>Clip Metadata</h2>
+        <p class="section-hint">UserComments &amp; Attributes per clip (scene, soundroll, camera, color, lens)</p>
+        <div id="clip-metadata-content"></div>
+      </section>
+
+      <section id="section-sources" class="card">
+        <h2>Source References</h2>
+        <div id="sources-content"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>AAF Reader &mdash; Open source AAF metadata inspector. Files are processed on the server and immediately discarded.</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
