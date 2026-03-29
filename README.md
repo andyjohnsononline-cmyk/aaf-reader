@@ -1,6 +1,6 @@
 # AAF Reader
 
-A web-based AAF (Advanced Authoring Format) metadata inspector. Drop an AAF file in the browser and instantly see what's inside — no NLE required.
+A browser-based AAF (Advanced Authoring Format) metadata inspector. Drop an AAF file and instantly see what's inside. Your files never leave your browser.
 
 ## What it extracts
 
@@ -8,41 +8,39 @@ A web-based AAF (Advanced Authoring Format) metadata inspector. Drop an AAF file
 - **Media summary** — video resolution, codec, frame rate, color space, bit depth; audio sample rate, bit depth, channels
 - **Compositions** — name, duration, edit rate, timecodes, track counts
 - **Master clips** — clip names and slot counts
+- **Clip metadata** — UserComments and Attributes per clip (scene, slate, take, soundroll, camera, lens, color)
 - **Source references** — network locator paths (MXF media references), tape source names, per-source media descriptors
 - **Mob counts** — total mobs, compositions, master mobs, source mobs
 
 ## Quick start
 
-### With Python (local)
+Serve the `frontend/` directory with any static file server:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-
-cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000
+cd frontend
+python3 -m http.server 8765
 ```
 
-Open http://localhost:8000 and drop an AAF file.
+Open http://localhost:8765 and drop an AAF file.
 
-### With Docker
+First parse takes 10-15 seconds (downloads Pyodide runtime + installs Python packages). Repeat parses are near-instant.
 
-```bash
-docker compose up --build
-```
+## How it works
 
-Open http://localhost:8000.
+AAF parsing runs entirely in your browser using [Pyodide](https://pyodide.org) (Python compiled to WebAssembly). A Web Worker loads Pyodide, installs [pyaaf2](https://github.com/markreidvfx/pyaaf2) and [olefile](https://github.com/decalage2/olefile) from vendored wheels, then parses the file. Results come back as JSON and render in vanilla JS.
+
+No server, no upload, no backend.
 
 ## Privacy
 
-Files are uploaded to the server for parsing and **immediately discarded** — nothing is written to disk beyond a temporary file that is deleted after processing. For maximum privacy, run locally or self-host with Docker.
+Your AAF files never leave your browser. Parsing happens entirely in WebAssembly on your machine. The only network requests are for the Pyodide runtime (CDN) and Google Fonts on first load.
 
 ## Tech stack
 
-- **Backend** — Python, FastAPI, [pyaaf2](https://github.com/markreidvfx/pyaaf2)
+- **Parser** — Python ([pyaaf2](https://github.com/markreidvfx/pyaaf2)) running in-browser via [Pyodide](https://pyodide.org) WebAssembly
 - **Frontend** — Vanilla HTML/JS/CSS (no framework)
-- **Deployment** — Docker / docker-compose
+- **Design** — Custom design system ([DESIGN.md](DESIGN.md)): Satoshi + DM Sans + JetBrains Mono, warm amber accent
+- **Deployment** — Static site (GitHub Pages, any CDN, any file server)
 
 ## Supported AAF sources
 
