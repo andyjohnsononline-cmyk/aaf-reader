@@ -4,11 +4,11 @@ async function initPyodide(messageId) {
   if (pyodide) return pyodide;
 
   postMessage({ id: messageId, op: "progress", stage: "loading" });
-  pyodide = await loadPyodide();
+  const py = await loadPyodide();
 
   postMessage({ id: messageId, op: "progress", stage: "installing" });
-  await pyodide.loadPackage("micropip");
-  const micropip = pyodide.pyimport("micropip");
+  await py.loadPackage("micropip");
+  const micropip = py.pyimport("micropip");
 
   const wheelsBase = self.location.href.replace(/\/[^/]*$/, "/wheels/");
   await micropip.install(wheelsBase + "olefile-0.47-py2.py3-none-any.whl");
@@ -17,8 +17,9 @@ async function initPyodide(messageId) {
   const parserBase = self.location.href.replace(/\/[^/]*$/, "/");
   const resp = await fetch(parserBase + "aaf_parser.py");
   const parserCode = await resp.text();
-  pyodide.FS.writeFile("/home/pyodide/aaf_parser.py", parserCode);
+  py.FS.writeFile("/home/pyodide/aaf_parser.py", parserCode);
 
+  pyodide = py;
   return pyodide;
 }
 
