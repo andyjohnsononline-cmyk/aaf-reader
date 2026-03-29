@@ -2,8 +2,66 @@
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("file-input");
   const loading = document.getElementById("loading");
+  const loadingText = document.getElementById("loading-text");
+  const loadingStage = document.getElementById("loading-stage");
   const errorBanner = document.getElementById("error");
   const results = document.getElementById("results");
+
+  const MAX_FILE_SIZE = 200 * 1024 * 1024;
+  const STAGE_LABELS = {
+    loading: "Loading parser engine...",
+    installing: "Installing packages...",
+    parsing: "Parsing AAF file...",
+  };
+
+  let worker = null;
+  let pendingResolve = null;
+  let pendingReject = null;
+  let requestId = 0;
+
+  function getWorker() {
+    if (worker) return worker;
+    worker = new Worker("worker.js");
+    worker.onmessage = handleWorkerMessage;
+    worker.onerror = handleWorkerError;
+    return worker;
+  }
+
+  function handleWorkerMessage(e) {
+    const msg = e.data;
+
+    if (msg.op === "progress") {
+      const label = STAGE_LABELS[msg.stage] || msg.stage;
+      loadingStage.textContent = label;
+      return;
+    }
+
+    if (msg.ok) {
+      if (pendingResolve) pendingResolve(msg.result);
+    } else {
+      if (pendingReject) pendingReject(new Error(msg.error));
+    }
+    pendingResolve = null;
+    pendingReject = null;
+  }
+
+  function handleWorkerError(e) {
+    if (pendingReject) {
+      pendingReject(new Error("Parser crashed. Please refresh and try again."));
+    }
+    pendingResolve = null;
+    pendingReject = null;
+    worker = null;
+  }
+
+  function parseFile(buffer) {
+    return new Promise((resolve, reject) => {
+      pendingResolve = resolve;
+      pendingReject = reject;
+      const id = String(++requestId);
+      getWorker().postMessage({ id, op: "parse", buffer }, [buffer]);
+    });
+  }
 
   dropzone.addEventListener("click", () => fileInput.click());
 
@@ -20,41 +78,35 @@
     e.preventDefault();
     dropzone.classList.remove("dragover");
     const file = e.dataTransfer.files[0];
-    if (file) uploadFile(file);
+    if (file) handleFile(file);
   });
 
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
-    if (file) uploadFile(file);
+    if (file) handleFile(file);
     fileInput.value = "";
   });
 
-  if (new URLSearchParams(window.location.search).has("preview")) {
-    showLoading();
-    fetch("/api/preview")
-      .then((r) => r.json())
-      .then((data) => renderResults(data))
-      .catch((err) => showError(err.message));
-  }
-
-  async function uploadFile(file) {
+  async function handleFile(file) {
     if (!file.name.toLowerCase().endsWith(".aaf")) {
       showError("Please select an .aaf file.");
       return;
     }
 
+    if (file.size > MAX_FILE_SIZE) {
+      showError(
+        `This file is ${(file.size / 1024 / 1024).toFixed(0)}MB, which exceeds the ~200MB browser limit. ` +
+        `Try the Docker version for large files.`
+      );
+      return;
+    }
+
     showLoading();
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const resp = await fetch("/api/parse", { method: "POST", body: formData });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body.detail || `Server error (${resp.status})`);
-      }
-      const data = await resp.json();
+      const buffer = await file.arrayBuffer();
+      const jsonStr = await parseFile(buffer);
+      const data = JSON.parse(jsonStr);
       renderResults(data);
     } catch (err) {
       showError(err.message);
@@ -63,6 +115,8 @@
 
   function showLoading() {
     loading.classList.remove("hidden");
+    loadingText.textContent = "Parsing AAF file...";
+    loadingStage.textContent = "";
     errorBanner.classList.add("hidden");
     results.classList.add("hidden");
     dropzone.classList.add("hidden");
